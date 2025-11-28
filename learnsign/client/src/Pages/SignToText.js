@@ -111,11 +111,11 @@ function SignToText() {
         setConfidence(confidencePercent);
         setPredictions(top_predictions);
         
-        // Only process if confidence is above 60%
-        if (conf > 0.60) {
+        // Only process if confidence is above 50%
+        if (conf > 0.50) {
           // Add to detection buffer for stabilization
           setDetectionBuffer(prev => {
-            const newBuffer = [...prev, prediction].slice(-5); // Keep last 5 detections
+            const newBuffer = [...prev, prediction].slice(-4); // Keep last 4 detections
             
             // Count occurrences in buffer
             const counts = {};
@@ -123,8 +123,8 @@ function SignToText() {
               counts[sign] = (counts[sign] || 0) + 1;
             });
             
-            // Check if any sign appears at least 3 times in last 5 frames
-            const stableSign = Object.keys(counts).find(sign => counts[sign] >= 3);
+            // Check if any sign appears at least 2 times in last 4 frames
+            const stableSign = Object.keys(counts).find(sign => counts[sign] >= 2);
             
             if (stableSign && stableSign !== lastDetectedSign) {
               console.log('Stable detection found:', stableSign);
@@ -135,11 +135,11 @@ function SignToText() {
                 return newText;
               });
               
-              // Reset after 3 seconds
+              // Reset after 1.5 seconds
               setTimeout(() => {
                 console.log('Resetting last detected sign');
                 setLastDetectedSign('');
-              }, 3000);
+              }, 1500);
               
               // Clear buffer after successful detection
               return [];
@@ -159,9 +159,12 @@ function SignToText() {
       if (err.response) {
         console.error('Server error:', err.response.data);
         setError(`Server error: ${err.response.data.error || 'Unknown error'}`);
-      } else if (err.code === 'ERR_NETWORK') {
-        setError('Cannot connect to server. Make sure Flask server is running on port 5000.');
+      } else if (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED') {
+        setError('Lost connection to server. Make sure Flask server is still running.');
+        setIsServerConnected(false);
         stopDetection();
+      } else {
+        setError(`Detection error: ${err.message}`);
       }
     }
   };
@@ -180,12 +183,12 @@ function SignToText() {
     setLastDetectedSign('');
     await startCamera();
     
-    // Start detection loop (every 500ms to avoid overloading)
+    // Start detection loop (every 300ms for faster response)
     console.log('Setting up detection interval...');
     detectionIntervalRef.current = setInterval(() => {
       console.log('Calling detectSign...');
       detectSign();
-    }, 500);
+    }, 300);
   };
 
   // Stop detection
@@ -209,16 +212,34 @@ function SignToText() {
   useEffect(() => {
     const checkServer = async () => {
       try {
-        const response = await axios.get(`${API_URL}/health`);
-        if (response.data.status === 'ok' && response.data.model_loaded) {
-          setIsServerConnected(true);
-          setError(null);
+        const response = await axios.get(`${API_URL}/health`, {
+          timeout: 3000,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        console.log('Health check response:', response.data);
+        if (response.data.status === 'ok') {
+          if (response.data.model_loaded) {
+            setIsServerConnected(true);
+            setError(null);
+          } else {
+            setIsServerConnected(false);
+            setError('Server is running but model is not loaded properly.');
+          }
         } else {
-          setError('Server is running but model is not loaded properly.');
+          setIsServerConnected(false);
+          setError('Server returned unexpected status.');
         }
       } catch (err) {
         console.error('Server connection error:', err);
-        setError('Cannot connect to Flask server. Please run: python server/app.py');
+        if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
+          setError('Cannot connect to Flask server. Make sure server is running on http://localhost:5000');
+        } else if (err.response) {
+          setError(`Server error: ${err.response.status} - ${err.response.statusText}`);
+        } else {
+          setError('Network error. Check if Flask server is running: python server/app.py');
+        }
         setIsServerConnected(false);
       }
     };
@@ -233,11 +254,11 @@ function SignToText() {
   }, []);
 
   return (
-    <div className='container-fluid mt-4'>
+    <div className='container-fluid mt-4 px-3 px-md-4'>
       <div className='row'>
         <div className='col-12 text-center mb-4'>
-          <h2>Sign Language to Text</h2>
-          <p className='text-muted'>Detect sign language gestures in real-time using AI</p>
+          <h2 className='h3 h2-md'>Sign Language to Text</h2>
+          <p className='text-muted small'>Detect sign language gestures in real-time using AI</p>
           <div className='d-flex justify-content-center align-items-center gap-2'>
             <span className={`badge ${isServerConnected ? 'bg-success' : 'bg-danger'}`}>
               <i className={`fa fa-circle me-1`}></i>
@@ -256,7 +277,7 @@ function SignToText() {
                 <div className='mt-2'>
                   <small>
                     To start the server, run in terminal:<br/>
-                    <code>cd server && pip install -r requirements.txt && python app.py</code>
+                    <code className='d-block mt-1 p-2 bg-light text-dark rounded small'>cd server && pip install -r requirements.txt && python app.py</code>
                   </small>
                 </div>
               )}
@@ -265,14 +286,14 @@ function SignToText() {
         </div>
       )}
 
-      <div className='row'>
+      <div className='row g-3'>
         {/* Video Feed */}
-        <div className='col-md-6'>
+        <div className='col-12 col-lg-6'>
           <div className='card'>
             <div className='card-header'>
-              <h5>Camera Feed</h5>
+              <h5 className='mb-0 h6'>Camera Feed</h5>
             </div>
-            <div className='card-body text-center'>
+            <div className='card-body text-center p-2 p-md-3'>
               <video
                 ref={videoRef}
                 width='100%'
@@ -280,7 +301,9 @@ function SignToText() {
                 style={{ 
                   border: '2px solid #ddd', 
                   borderRadius: '8px',
-                  backgroundColor: '#000'
+                  backgroundColor: '#000',
+                  maxHeight: '400px',
+                  objectFit: 'contain'
                 }}
               />
               <canvas ref={canvasRef} style={{ display: 'none' }} />
@@ -288,7 +311,7 @@ function SignToText() {
               <div className='mt-3'>
                 {!isDetecting ? (
                   <button 
-                    className='btn btn-success btn-lg'
+                    className='btn btn-success btn-lg w-100 w-sm-auto'
                     onClick={startDetection}
                     disabled={!isServerConnected}
                   >
@@ -297,7 +320,7 @@ function SignToText() {
                   </button>
                 ) : (
                   <button 
-                    className='btn btn-danger btn-lg'
+                    className='btn btn-danger btn-lg w-100 w-sm-auto'
                     onClick={stopDetection}
                   >
                     <i className='fa fa-stop me-2'></i>
@@ -310,10 +333,10 @@ function SignToText() {
         </div>
 
         {/* Results Panel */}
-        <div className='col-md-6'>
+        <div className='col-12 col-lg-6'>
           <div className='card'>
             <div className='card-header d-flex justify-content-between align-items-center'>
-              <h5>Detection Results</h5>
+              <h5 className='mb-0 h6'>Detection Results</h5>
               <button 
                 className='btn btn-sm btn-outline-secondary'
                 onClick={clearText}
@@ -321,38 +344,16 @@ function SignToText() {
                 Clear
               </button>
             </div>
-            <div className='card-body'>
+            <div className='card-body p-2 p-md-3'>
               {/* Current Prediction */}
               {predictions.length > 0 && (
-                <div className='mb-4'>
-                  <h6>Current Sign:</h6>
-                  <div className='alert alert-info'>
-                    <h4 className='mb-2'>{predictions[0].class.toUpperCase()}</h4>
-                    <div className='progress' style={{ height: '25px' }}>
-                      <div 
-                        className='progress-bar bg-success' 
-                        role='progressbar' 
-                        style={{ width: `${confidence}%` }}
-                      >
-                        {confidence}% confident
-                      </div>
-                    </div>
+                <div>
+                  <h6 className='small'>Current Sign:</h6>
+                  <div className='alert alert-info mb-3'>
+                    <h4 className='mb-0 h5'>{predictions[0].class.toUpperCase()}</h4>
                   </div>
                 </div>
               )}
-
-              {/* Detected Text */}
-              <div>
-                <h6>Detected Text:</h6>
-                <textarea
-                  className='form-control'
-                  rows='8'
-                  value={detectedText}
-                  readOnly
-                  placeholder='Detected signs will appear here...'
-                  style={{ fontSize: '1.2rem', fontWeight: '500' }}
-                />
-              </div>
 
             </div>
           </div>
@@ -364,10 +365,10 @@ function SignToText() {
         <div className='col-12'>
           <div className='card'>
             <div className='card-header'>
-              <h5>Instructions</h5>
+              <h5 className='mb-0 h6'>Instructions</h5>
             </div>
-            <div className='card-body'>
-              <ol>
+            <div className='card-body p-3'>
+              <ol className='mb-0 ps-3 small'>
                 <li>Click "Start Detection" to begin camera feed</li>
                 <li>Perform sign language gestures in front of the camera</li>
                 <li>The system will detect and display the recognized signs</li>

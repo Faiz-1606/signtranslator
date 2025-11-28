@@ -229,4 +229,6 @@ def get_classes():
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
+    print(f"🚀 Starting HTTP server on http://0.0.0.0:{port}")
+    print(f"📱 Access from phone: http://192.168.210.53:{port}")
     app.run(debug=False, host='0.0.0.0', port=port)

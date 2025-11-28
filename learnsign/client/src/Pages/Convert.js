@@ -56,16 +56,23 @@ function Convert() {
     ref.scene.add(spotLight);
     ref.renderer = new THREE.WebGLRenderer({ antialias: true });
 
+    // Get the actual canvas container dimensions
+    const canvasContainer = document.getElementById("canvas");
+    if (!canvasContainer) return;
+
+    const containerWidth = canvasContainer.clientWidth || 640;
+    const containerHeight = window.innerHeight - 70;
+
     ref.camera = new THREE.PerspectiveCamera(
         30,
-        window.innerWidth * 0.57 / (window.innerHeight - 70),
+        containerWidth / containerHeight,
         0.1,
         1000
     )
-    ref.renderer.setSize(window.innerWidth * 0.57, window.innerHeight - 70);
+    ref.renderer.setSize(containerWidth, containerHeight);
 
-    document.getElementById("canvas").innerHTML = "";
-    document.getElementById("canvas").appendChild(ref.renderer.domElement);
+    canvasContainer.innerHTML = "";
+    canvasContainer.appendChild(ref.renderer.domElement);
 
     ref.camera.position.z = 1.6;
     ref.camera.position.y = 1.4;
@@ -82,11 +89,34 @@ function Convert() {
         ref.avatar = gltf.scene;
         ref.scene.add(ref.avatar);
         defaultPose(ref);
+        // Initial render
+        ref.renderer.render(ref.scene, ref.camera);
       },
       (xhr) => {
         console.log(xhr);
       }
     );
+
+    // Handle window resize
+    const handleResize = () => {
+      const canvasContainer = document.getElementById("canvas");
+      if (canvasContainer && ref.renderer && ref.camera) {
+        const containerWidth = canvasContainer.clientWidth || 640;
+        const containerHeight = window.innerHeight - 70;
+        ref.camera.aspect = containerWidth / containerHeight;
+        ref.camera.updateProjectionMatrix();
+        ref.renderer.setSize(containerWidth, containerHeight);
+        if (ref.scene) {
+          ref.renderer.render(ref.scene, ref.camera);
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
 
   }, [ref, bot]);
 
@@ -150,6 +180,10 @@ function Convert() {
         }
       }
     }
+    if(!ref.pending){
+      ref.pending = true;
+      ref.animate();
+    }
   };
 
   const startListening = () =>{
@@ -161,48 +195,17 @@ function Convert() {
   }
 
   return (
-    <div className='container-fluid'>
-      <div className='row'>
-        <div className='col-md-3'>
-          <label className='label-style'>
-            Processed Text
-          </label>
-          <textarea rows={3} value={text} className='w-100 input-style' readOnly />
-          <label className='label-style'>
-            Speech Recognition: {listening ? 'on' : 'off'}
-          </label>
-          <div className='space-between'>
-            <button className="btn btn-primary btn-style w-33" onClick={startListening}>
-              Mic On <i className="fa fa-microphone"/>
-            </button>
-            <button className="btn btn-primary btn-style w-33" onClick={stopListening}>
-              Mic Off <i className="fa fa-microphone-slash"/>
-            </button>
-            <button className="btn btn-primary btn-style w-33" onClick={resetTranscript}>
-              Clear
-            </button>
-          </div>
-          <textarea rows={3} value={audioInput} placeholder='Speech input ...' className='w-100 input-style' readOnly />
-          <button onClick={() => { sign(audioInput); }} className='btn btn-primary w-100 btn-style btn-start'>
-            Start Animations
-          </button>
-          <label className='label-style'>
-            Text Input
-          </label>
-          <textarea rows={3} ref={textFromInput} placeholder='Text input ...' className='w-100 input-style' />
-          <button onClick={() => { sign(textFromInput.current.value); }} className='btn btn-primary w-100 btn-style btn-start'>
-            Start Animations
-          </button>
-        </div>
-        <div className='col-md-7'>
-          <div id='canvas'/>
-        </div>
-        <div className='col-md-2'>
+    <div className='container-fluid px-3 px-md-4'>
+      <div className='row g-3'>
+        {/* Avatar Selection - Order 1 on mobile, Order 3 on desktop */}
+        <div className='col-12 col-md-2 order-1 order-md-3'>
           <p className='bot-label'>
             Select Avatar
           </p>
-          <img src={xbotPic} className='bot-image col-md-11' onClick={()=>{setBot(xbot)}} alt='Avatar 1: XBOT'/>
-          <img src={ybotPic} className='bot-image col-md-11' onClick={()=>{setBot(ybot)}} alt='Avatar 2: YBOT'/>
+          <div className='d-flex flex-row flex-md-column align-items-center justify-content-center gap-3'>
+            <img src={xbotPic} className='bot-image' style={{maxWidth: '150px', width: '45%'}} onClick={()=>{setBot(xbot)}} alt='Avatar 1: XBOT'/>
+            <img src={ybotPic} className='bot-image' style={{maxWidth: '150px', width: '45%'}} onClick={()=>{setBot(ybot)}} alt='Avatar 2: YBOT'/>
+          </div>
           <p className='label-style'>
             Animation Speed: {Math.round(speed*100)/100}
           </p>
@@ -227,6 +230,30 @@ function Convert() {
             onChange={({ x }) => setPause(x)}
             className='w-100'
           />
+        </div>
+
+        {/* Canvas - Order 2 on mobile and desktop */}
+        <div className='col-12 col-md-7 order-2 order-md-2'>
+          <div id='canvas'/>
+        </div>
+
+        {/* Controls - Order 3 on mobile, Order 1 on desktop */}
+        <div className='col-12 col-md-3 order-3 order-md-1'>
+          {/* Processed Text - Desktop only */}
+          <div className='d-none d-md-block'>
+            <label className='label-style'>
+              Processed Text
+            </label>
+            <textarea rows={3} value={text} className='w-100 input-style' readOnly />
+          </div>
+          
+          <label className='label-style'>
+            Text Input
+          </label>
+          <textarea rows={3} ref={textFromInput} placeholder='Text input ...' className='w-100 input-style' />
+          <button onClick={() => { sign(textFromInput.current.value); }} className='btn btn-primary w-100 btn-style btn-start'>
+            Start Animations
+          </button>
         </div>
       </div>
     </div>

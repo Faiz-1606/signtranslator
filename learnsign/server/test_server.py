@@ -7,7 +7,7 @@ import io
 # Test 1: Health check
 print("Testing health endpoint...")
 try:
-    response = requests.get('http://localhost:5000/api/health')
+    response = requests.get('http://192.168.210.53:5000/api')
     print(f"Status Code: {response.status_code}")
     print(f"Response: {json.dumps(response.json(), indent=2)}")
     print("✓ Health check passed\n")

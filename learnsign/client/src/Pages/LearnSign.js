@@ -41,13 +41,14 @@ function LearnSign() {
 
     ref.camera = new THREE.PerspectiveCamera(
         30,
-        window.innerWidth*0.57 / (window.innerHeight - 70),
+        window.innerWidth > 768 ? window.innerWidth*0.57 / (window.innerHeight - 70) : window.innerWidth*0.95 / (window.innerHeight - 70),
         0.1,
         1000
     )
 
     ref.renderer = new THREE.WebGLRenderer({ antialias: true });
-    ref.renderer.setSize(window.innerWidth * 0.57, (window.innerHeight - 70));
+    const canvasWidth = window.innerWidth > 768 ? window.innerWidth * 0.57 : window.innerWidth * 0.95;
+    ref.renderer.setSize(canvasWidth, (window.innerHeight - 70));
     document.getElementById("canvas").innerHTML = "";
     document.getElementById("canvas").appendChild(ref.renderer.domElement);
 
@@ -66,11 +67,34 @@ function LearnSign() {
         ref.avatar = gltf.scene;
         ref.scene.add(ref.avatar);
         defaultPose(ref);
+        // Initial render
+        ref.renderer.render(ref.scene, ref.camera);
       },
       (xhr) => {
         console.log(xhr);
       }
     );
+
+    // Handle window resize
+    const handleResize = () => {
+      const canvasContainer = document.getElementById("canvas");
+      if (canvasContainer && ref.renderer && ref.camera) {
+        const canvasWidth = window.innerWidth > 768 ? window.innerWidth * 0.57 : window.innerWidth * 0.95;
+        const canvasHeight = window.innerHeight - 70;
+        ref.camera.aspect = canvasWidth / canvasHeight;
+        ref.camera.updateProjectionMatrix();
+        ref.renderer.setSize(canvasWidth, canvasHeight);
+        if (ref.scene) {
+          ref.renderer.render(ref.scene, ref.camera);
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
 
   }, [ref, bot]);
 
@@ -113,7 +137,7 @@ function LearnSign() {
   let alphaButtons = [];
   for (let i = 0; i < 26; i++) {
     alphaButtons.push(
-        <div className='col-md-3'>
+        <div className='col-6 col-sm-4 col-md-3' key={`alpha-${i}`}>
             <button className='signs w-100' onClick={()=>{
               if(ref.animations.length === 0){
                 alphabets[String.fromCharCode(i + 65)](ref);
@@ -128,7 +152,7 @@ function LearnSign() {
   let wordButtons = [];
   for (let i = 0; i < words.wordList.length; i++) {
     wordButtons.push(
-        <div className='col-md-4'>
+        <div className='col-6 col-md-4' key={`word-${i}`}>
             <button className='signs w-100' onClick={()=>{
               if(ref.animations.length === 0){
                 words[words.wordList[i]](ref);
@@ -141,35 +165,17 @@ function LearnSign() {
   }
 
   return (
-    <div className='container-fluid'>
-      <div className='row'>
-        <div className='col-md-3'>
-            <h1 className='heading'>
-              Alphabets
-            </h1>
-            <div className='row'>
-                {
-                    alphaButtons
-                }
-            </div>
-            <h1 className='heading'>
-              Words
-            </h1>
-            <div className='row'>
-                {
-                    wordButtons
-                }
-            </div>
-        </div>
-        <div className='col-md-7'>
-          <div id='canvas'/>
-        </div>
-        <div className='col-md-2'>
+    <div className='container-fluid px-3 px-md-4'>
+      <div className='row g-3'>
+        {/* Avatar Selection - Order 1 on mobile, Order 3 on desktop */}
+        <div className='col-12 col-md-2 order-1 order-md-3'>
           <p className='bot-label'>
             Select Avatar
           </p>
-          <img src={xbotPic} className='bot-image col-md-11' onClick={()=>{setBot(xbot)}} alt='Avatar 1: XBOT'/>
-          <img src={ybotPic} className='bot-image col-md-11' onClick={()=>{setBot(ybot)}} alt='Avatar 2: YBOT'/>
+          <div className='d-flex flex-row flex-md-column align-items-center justify-content-center gap-3'>
+            <img src={xbotPic} className='bot-image' style={{maxWidth: '150px', width: '45%'}} onClick={()=>{setBot(xbot)}} alt='Avatar 1: XBOT'/>
+            <img src={ybotPic} className='bot-image' style={{maxWidth: '150px', width: '45%'}} onClick={()=>{setBot(ybot)}} alt='Avatar 2: YBOT'/>
+          </div>
           <p className='label-style'>
             Animation Speed: {Math.round(speed*100)/100}
           </p>
@@ -194,6 +200,64 @@ function LearnSign() {
             onChange={({ x }) => setPause(x)}
             className='w-100'
           />
+        </div>
+
+        {/* Canvas - Order 2 on mobile and desktop */}
+        <div className='col-12 col-md-7 order-2 order-md-2'>
+          <div id='canvas'/>
+        </div>
+
+        {/* Alphabets and Words - Order 3 on mobile, Order 1 on desktop - Mobile uses accordion */}
+        <div className='col-12 col-md-3 order-3 order-md-1'>
+            {/* Mobile: Accordion view */}
+            <div className='d-md-none'>
+              <div className="accordion" id="mobileSignsAccordion">
+                <div className="accordion-item">
+                  <h2 className="accordion-header" id="headingAlphabets">
+                    <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAlphabets" aria-expanded="false" aria-controls="collapseAlphabets">
+                      Alphabets
+                    </button>
+                  </h2>
+                  <div id="collapseAlphabets" className="accordion-collapse collapse" aria-labelledby="headingAlphabets" data-bs-parent="#mobileSignsAccordion">
+                    <div className="accordion-body p-2">
+                      <div className='row g-2'>
+                        {alphaButtons}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="accordion-item">
+                  <h2 className="accordion-header" id="headingWords">
+                    <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseWords" aria-expanded="false" aria-controls="collapseWords">
+                      Words
+                    </button>
+                  </h2>
+                  <div id="collapseWords" className="accordion-collapse collapse" aria-labelledby="headingWords" data-bs-parent="#mobileSignsAccordion">
+                    <div className="accordion-body p-2">
+                      <div className='row g-2'>
+                        {wordButtons}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop: Normal view */}
+            <div className='d-none d-md-block'>
+              <h1 className='heading'>
+                Alphabets
+              </h1>
+              <div className='row g-2'>
+                {alphaButtons}
+              </div>
+              <h1 className='heading'>
+                Words
+              </h1>
+              <div className='row g-2'>
+                {wordButtons}
+              </div>
+            </div>
         </div>
       </div>
     </div>

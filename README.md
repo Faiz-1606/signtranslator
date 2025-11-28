@@ -9,7 +9,6 @@ Sign Bridge is a full-featured sign language toolkit that combines cutting-edge 
 ### Key Features
 
 - **🔄 Convert**: Transform speech or text into sign language animations in real-time
-  - Speech-to-sign conversion using browser's speech recognition API
   - Text-to-sign conversion with instant visualization
   - Customizable 3D avatar animations
   - Adjustable animation speed and pause duration
@@ -19,12 +18,11 @@ Sign Bridge is a full-featured sign language toolkit that combines cutting-edge 
   - Learn individual letters (A-Z) and common words
   - Watch 3D avatar demonstrations with smooth animations
   - Practice at your own pace
-
-- **🎥 Create Videos**: Generate sign language videos from content
-  - Upload text files or type directly
-  - Speak through microphone for audio input
-  - Create professional sign language videos
-  - Share videos with the community
+ - **Text To Sign** : Realtime Sign to text conversion
+  - uses custom LSTM model trained on Custom dataset 
+  - uses media pipe and open cv to map keypoints 
+  - recognises words 
+                     
 
 - **🎨 Modern UI/UX**: Beautiful, responsive design
   - Animated landing page with smooth transitions
@@ -159,11 +157,7 @@ The APK will be in `build/app/outputs/flutter-apk/app-release.apk`.
 - 3D avatar demonstrations
 - Repeat and practice functionality
 
-### Video Creation
-- Multiple input methods: text file upload, text input, or speech
-- Automatic video generation from content
-- Video gallery and sharing capabilities
-- Community video browsing
+
 
 ## Troubleshooting
 

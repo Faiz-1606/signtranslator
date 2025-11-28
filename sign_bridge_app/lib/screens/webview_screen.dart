@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
@@ -37,10 +38,44 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   Future<void> _requestPermissions() async {
     // Request camera and microphone permissions for speech recognition
-    await [
-      Permission.camera,
-      Permission.microphone,
-    ].request();
+    final cameraStatus = await Permission.camera.request();
+    final microphoneStatus = await Permission.microphone.request();
+
+    if (cameraStatus.isDenied || microphoneStatus.isDenied) {
+      debugPrint('Camera or Microphone permission denied');
+    }
+
+    if (cameraStatus.isPermanentlyDenied || microphoneStatus.isPermanentlyDenied) {
+      // Show dialog to open settings
+      if (mounted) {
+        _showPermissionDialog();
+      }
+    }
+  }
+
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Permissions Required'),
+        content: const Text(
+          'Camera and microphone permissions are required for sign language detection. Please enable them in app settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              openAppSettings();
+              Navigator.pop(context);
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _checkConnectivity() async {
@@ -80,6 +115,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
               _isLoading = false;
               _currentUrl = url;
             });
+            // Inject JavaScript to handle camera permissions
+            _injectPermissionScript();
           },
           onWebResourceError: (WebResourceError error) {
             debugPrint('WebView Error: ${error.description}');
@@ -94,12 +131,67 @@ class _WebViewScreenState extends State<WebViewScreen> {
         ),
       )
       ..enableZoom(true)
+      ..addJavaScriptChannel(
+        'CameraPermission',
+        onMessageReceived: (JavaScriptMessage message) {
+          debugPrint('Camera permission message: ${message.message}');
+          if (message.message == 'request') {
+            _requestPermissions();
+          }
+        },
+      )
       ..loadRequest(Uri.parse('${AppConstants.baseUrl}${AppConstants.homeRoute}'));
 
     // Enable DOM storage and other features
     _controller.setUserAgent(
       'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36'
     );
+
+    // Configure Android-specific WebView settings for camera/microphone
+    if (_controller.platform is AndroidWebViewController) {
+      AndroidWebViewController.enableDebugging(true);
+      (_controller.platform as AndroidWebViewController)
+        ..setMediaPlaybackRequiresUserGesture(false);
+    }
+  }
+
+  void _injectPermissionScript() {
+    // Inject JavaScript to log camera API status and help debug
+    _controller.runJavaScript('''
+      (function() {
+        console.log('=== Camera Permission Script Injected ===');
+        console.log('navigator.mediaDevices:', !!navigator.mediaDevices);
+        console.log('getUserMedia:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+        
+        // Test if camera is accessible
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          console.log('getUserMedia API is available');
+          
+          // Add permission query if available
+          if (navigator.permissions && navigator.permissions.query) {
+            navigator.permissions.query({ name: 'camera' })
+              .then(permissionStatus => {
+                console.log('Camera permission status:', permissionStatus.state);
+                permissionStatus.onchange = function() {
+                  console.log('Camera permission changed to:', this.state);
+                };
+              })
+              .catch(err => console.log('Permission query error:', err));
+          }
+        } else {
+          console.error('getUserMedia API not available!');
+        }
+        
+        // Store original error handler
+        window.addEventListener('error', function(e) {
+          if (e.message && e.message.includes('camera')) {
+            console.error('Camera error event:', e.message);
+          }
+        });
+        
+        console.log('=== End Camera Script ===');
+      })();
+    ''');
   }
 
   Future<bool> _onWillPop() async {
@@ -197,17 +289,17 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ),
               ),
               _buildNavButton(
+                icon: Icons.translate,
+                label: 'Translate',
+                onTap: () => _controller.loadRequest(
+                  Uri.parse('${AppConstants.baseUrl}${AppConstants.signToTextRoute}'),
+                ),
+              ),
+              _buildNavButton(
                 icon: Icons.school,
                 label: 'Learn',
                 onTap: () => _controller.loadRequest(
                   Uri.parse('${AppConstants.baseUrl}${AppConstants.learnSignRoute}'),
-                ),
-              ),
-              _buildNavButton(
-                icon: Icons.video_library,
-                label: 'Videos',
-                onTap: () => _controller.loadRequest(
-                  Uri.parse('${AppConstants.baseUrl}${AppConstants.videosRoute}'),
                 ),
               ),
             ],

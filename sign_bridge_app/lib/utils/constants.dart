@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 class AppConstants {
   // Base URL - Change this to your hosted React app URL
   // For development, use your local server or hosted URL
-  static const String baseUrl = 'http://192.168.1.9:3000'; // Local IP for emulator access
+  static const String baseUrl = 'http://192.168.210.53:3000'; // React app on port 3000
 
   // For production, use your hosted URL:
   // static const String baseUrl = 'https://your-app.netlify.app';
 
   static const String homeRoute = '/sign-kit/home';
   static const String convertRoute = '/sign-kit/convert';
+  static const String signToTextRoute = '/sign-kit/SignToText';
   static const String learnSignRoute = '/sign-kit/learn-sign';
   static const String videosRoute = '/sign-kit/all-videos';
   static const String createVideoRoute = '/sign-kit/create-video';

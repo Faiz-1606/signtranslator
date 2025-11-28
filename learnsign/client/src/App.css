@@ -10,6 +10,7 @@ body {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    gap: 10px;
 }
 .label-style{
     font-size: 20px;
@@ -50,15 +51,36 @@ body {
     border-radius: 30px;
     border-style: solid;
     border-width: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .bot-image:hover{
     border-width: 5px;
+    transform: scale(1.05);
 }
 
 canvas{
     border-style: solid;
     border-width: 3px;
+    max-width: 100%;
+    height: auto;
+}
+
+#canvas {
+    width: 100%;
+    min-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+#canvas canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 600px;
 }
 
 .btn-start{
@@ -148,7 +170,222 @@ i{
 
 @media (max-width: 768px) {
   .welcome-title {
-    font-size: 2.5rem;
+    font-size: 2rem !important;
+    line-height: 1.2;
+  }
+
+  #canvas {
+    min-height: 280px;
+  }
+
+  .bot-image {
+    max-width: 120px;
+  }
+
+  .label-style {
+    font-size: 16px !important;
+    margin-top: 15px;
+  }
+
+  .input-style {
+    font-size: 14px !important;
+    padding: 8px !important;
+  }
+
+  .btn-style {
+    font-size: 14px !important;
+    padding: 8px !important;
+  }
+
+  .space-between {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .w-33 {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .bot-label {
+    font-size: 20px;
+  }
+
+  .signs {
+    font-size: 14px;
+    height: 32px;
+  }
+
+  /* Stack columns on mobile */
+  .container-fluid .row > [class*='col-'] {
+    margin-bottom: 20px;
+  }
+
+  /* Make hero section buttons stack */
+  .home-gradient .d-flex {
+    flex-direction: column !important;
+    width: 100%;
+  }
+
+  .home-gradient .btn {
+    width: 100% !important;
+    margin-bottom: 10px;
+  }
+
+  /* Service cards */
+  .service-card {
+    margin-bottom: 20px !important;
+  }
+
+  .card-img-wrapper {
+    height: 180px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  body {
+    padding-top: 60px;
+  }
+
+  .welcome-title {
+    font-size: 1.5rem !important;
+    padding: 0 15px;
+  }
+
+  .subtitle p {
+    font-size: 1rem !important;
+    padding: 0 10px;
+  }
+
+  #canvas {
+    min-height: 220px;
+  }
+
+  .heading {
+    font-size: 1.5rem;
+    margin-top: 20px;
+  }
+
+  .label-style {
+    font-size: 14px !important;
+  }
+
+  .input-style, .btn-style {
+    font-size: 13px !important;
+  }
+
+  .bot-image {
+    max-width: 100px;
+  }
+
+  .signs {
+    font-size: 12px;
+    height: 30px;
+    padding: 5px;
+  }
+
+  /* Adjust navbar for small screens */
+  .navbar-brand {
+    font-size: 1.2rem !important;
+  }
+
+  .navbar-brand img {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  /* Footer adjustments */
+  .page-footer .col-md-3,
+  .page-footer .col-md-2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .page-footer h6 {
+    font-size: 1rem;
+  }
+}
+
+/* Tablet specific adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .welcome-title {
+    font-size: 3rem !important;
+  }
+
+  #canvas {
+    min-height: 350px;
+  }
+
+  .bot-label {
+    font-size: 22px;
+  }
+
+  .label-style {
+    font-size: 18px !important;
+  }
+
+  .input-style, .btn-style {
+    font-size: 16px !important;
+  }
+
+  .container-fluid {
+    padding: 0 20px;
+  }
+}
+
+/* Large desktop adjustments */
+@media (min-width: 1400px) {
+  .container, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
+    max-width: 1320px;
+  }
+
+  #canvas {
+    min-height: 500px;
+  }
+
+  .welcome-title {
+    font-size: 4.5rem !important;
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 600px) and (orientation: landscape) {
+  body {
+    padding-top: 60px;
+  }
+
+  .home-gradient {
+    min-height: auto !important;
+    padding: 40px 0;
+  }
+
+  .welcome-title {
+    font-size: 2rem !important;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle p {
+    font-size: 1rem !important;
+    margin-bottom: 0.5rem;
+  }
+
+  #canvas {
+    min-height: 300px;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    padding-top: 0;
+  }
+
+  .navbar, .footer {
+    display: none;
+  }
+
+  #canvas canvas {
+    page-break-inside: avoid;
   }
 }
 
